@@ -76,7 +76,7 @@ def log_results(
     example_output = example_response.get("response", {}).get("output", [])
     print(f"Reward: {example_response.get('reward', 0.0):.3f}")
     print(f"Turns: {len([o for o in example_output if 'prompt_token_ids' in o])}")
-    for i, item in enumerate(example_output[:5]): # showing first 5 turns
+    for i, item in enumerate(example_output[:5]):
         print(f"\n  Turn {i+1}:")
         print(f"    Type: {item.get('type', 'unknown')}")
         if "generation_token_ids" in item:
@@ -85,7 +85,7 @@ def log_results(
             content = item["content"]
             if isinstance(content, list) and content:
                 text = content[0].get("text", "")
-                print(f"    Content: {text[:100]}...")
+                print(f"    Content: {text}")
     if len(example_output) > 5:
         print(f"\nOnly showing first 5 turns, but there is {len(example_output)} turns in total")
     print(f"{'='*80}\n")
