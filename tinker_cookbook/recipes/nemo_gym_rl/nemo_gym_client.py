@@ -41,13 +41,11 @@ async def call_nemo_gym_agent(
         for i, item in enumerate(dataset_items):
             request_body = item.copy()
 
-            # Ensure responses_create_params exists
             if "responses_create_params" not in request_body:
                 request_body["responses_create_params"] = {
                     "input": [{"role": "user", "content": ""}],
                 }
 
-            # Set generation parameters
             params = request_body["responses_create_params"]
             params.setdefault("max_output_tokens", max_output_tokens)
             params["temperature"] = temperature
@@ -56,7 +54,6 @@ async def call_nemo_gym_agent(
             if i == 0:
                 print(f"First request params keys: {list(params.keys())}")
 
-            # Create POST request to /run endpoint
             task = session.post(
                 f"{agent_server}/run",
                 json=request_body,
