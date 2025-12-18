@@ -59,12 +59,22 @@ verifiers = [
     "verifiers>=0.1.8.post0",
     "openai",
 ]
+nemo-gym = [
+    "aiohttp",
+    "fastapi",
+    "omegaconf",
+    "openai",
+    "pyyaml",
+    "requests",
+    "uvicorn",
+]
 all = [
     "tinker_cookbook[vector-search]",
     "tinker_cookbook[wandb]",
     "tinker_cookbook[neptune-scale]",
     "tinker_cookbook[trackio]",
     "tinker_cookbook[verifiers]",
+    "tinker_cookbook[nemo-gym]",
 ]
 
 [build-system]
