@@ -19,23 +19,7 @@ def set_client(client: TinkerAsyncOpenAIClient) -> None:
 
 @app.post("/v1/chat/completions")
 async def chat_completions(request: Request) -> JSONResponse:
-    # TODO: Implement on-policy token ID fix
-    # Problem: Multi-turn rollouts re-tokenize between turns causing train-generation mismatch
-    # Solution: Accept pre-tokenized input (token IDs) and skip renderer/tokenization
-    # Reference: https://docs.nvidia.com/nemo-gym/latest/training-framework-integration/on-policy-corrections/
-    #
-    # Current flow (INCORRECT for multi-turn):
-    #   Turn 1: Tinker generates token_ids -> nemo gym converts to text
-    #   Turn 2: nemo gym adds tool results -> Tinker re-tokenizes (MISMATCH!)
-    #
-    # Correct flow (NEEDED):
-    #   Turn 1: Tinker generates token_ids -> nemo gym preserves token_ids
-    #   Turn 2: nemo gym appends new token_ids -> Tinker uses them directly (NO re-tokenization)
-    #
-    # Implementation needed in TinkerAsyncOpenAIClient:
-    #   - Accept prompt_token_ids in request body
-    #   - Skip renderer.build_generation_prompt if token IDs provided
-    #   - Use ModelInput.from_ints(prompt_token_ids) directly
+    # TODO: Implement on-policy token ID fix https://github.com/NVIDIA-NeMo/RL/blob/main/nemo_rl/models/generation/vllm/vllm_worker_async.py#L40
 
     if _global_client is None:
         return JSONResponse(

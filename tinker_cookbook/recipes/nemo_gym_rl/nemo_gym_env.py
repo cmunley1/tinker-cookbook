@@ -140,23 +140,25 @@ def convert_nemo_gym_responses_to_trajectory_group(
             transitions.append(transition)
 
         if not transitions:
-            # No valid transitions, create a dummy one to avoid errors
-            # TODO should we error
-            trajectory = Trajectory(
-                transitions=[
-                    Transition(
-                        ob=tinker.ModelInput.empty(),
-                        ac=TokensWithLogprobs(tokens=[], maybe_logprobs=[]),
-                        reward=0.0,
-                        episode_done=True,
-                        metrics={},
-                    )
-                ],
-                final_ob=tinker.ModelInput.empty()
+            raise ValueError(
+                f"No valid transitions found in response. Expected items with 'prompt_token_ids' "
+                f"and 'generation_token_ids', but got: {[list(item.keys()) for item in output_items]}"
             )
-            trajectories_G.append(trajectory)
-            final_rewards_G.append(0.0)
-            metrics_G.append({"error": 1})
+            # trajectory = Trajectory(
+            #     transitions=[
+            #         Transition(
+            #             ob=tinker.ModelInput.empty(),
+            #             ac=TokensWithLogprobs(tokens=[], maybe_logprobs=[]),
+            #             reward=0.0,
+            #             episode_done=True,
+            #             metrics={},
+            #         )
+            #     ],
+            #     final_ob=tinker.ModelInput.empty()
+            # )
+            # trajectories_G.append(trajectory)
+            # final_rewards_G.append(0.0)
+            # metrics_G.append({"error": 1})
         else:
             trajectory = Trajectory(transitions=transitions, final_ob=tinker.ModelInput.empty())
             trajectories_G.append(trajectory)
@@ -184,7 +186,7 @@ def load_nemo_gym_dataset(path: str) -> List[Dict[str, Any]]:
         "expected_answers": [...],
         "metadata": {...},  
         "ground_truth": {...},
-        ... other fields depending on resources server
+        ... or other fields depending on resources server
     }
     """
     data = []
