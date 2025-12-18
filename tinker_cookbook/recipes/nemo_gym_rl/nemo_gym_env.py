@@ -233,8 +233,6 @@ class NemoGymRLDataset(RLDataset):
 class NemoGymRLDatasetBuilder(RLDatasetBuilder):
     dataset_path: str
     agent_server: str | None = None
-    head_server_host: str = "127.0.0.1"
-    head_server_port: int = 11000
     groups_per_batch: int = 32
     dataset_n: int = -1
 
@@ -243,11 +241,7 @@ class NemoGymRLDatasetBuilder(RLDatasetBuilder):
         if agent_server is None:
             agent_server = get_nemo_gym_agent_server()
         if agent_server is None:
-            agent_server = get_agent_server_from_head(
-                self.head_server_host,
-                self.head_server_port,
-                agent_name=None,
-            )
+            agent_server = get_agent_server_from_head()
             set_nemo_gym_agent_server(agent_server)
 
         print(f"Using nemo gym agent server: {agent_server}")

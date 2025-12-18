@@ -44,7 +44,7 @@ ng_run "+config_paths=[resources_servers/workplace_assistant/configs/workplace_a
 ### Training
 
 ```bash
- python -m tinker_cookbook.recipes.nemo_gym_rl.train     dataset_path=/home/cmunley/tinker-cookbook/train-workplace.jsonl     head_server_host=127.0.0.1     head_server_port=11000     model_name=Qwen/Qwen3-4B-Instruct-2507     group_size=8     groups_per_batch=8     learning_rate=1e-5     lora_rank=32     max_tokens=8192     save_every=10     log_path=./outputs/workplace_run3
+ python -m tinker_cookbook.recipes.nemo_gym_rl.train     dataset_path=/home/cmunley/tinker-cookbook/train-workplace.jsonl     model_name=Qwen/Qwen3-4B-Instruct-2507     group_size=8     groups_per_batch=8     learning_rate=1e-5     lora_rank=32     max_tokens=8192     save_every=10     log_path=./outputs/workplace_run3
 ```
 
 ### Output
@@ -52,3 +52,10 @@ ng_run "+config_paths=[resources_servers/workplace_assistant/configs/workplace_a
 - **Checkpoints**: Saved in `{log_path}/checkpoints/`
 - **Trajectories**: Logged to `{log_path}/trajectories.jsonl`
 - **Metrics**: Training metrics in logs and W&B (if configured)
+
+
+### Plot Reward 
+
+```
+python3 plot_rewards.py --log_path ../../../outputs/workplace_run5/
+```
