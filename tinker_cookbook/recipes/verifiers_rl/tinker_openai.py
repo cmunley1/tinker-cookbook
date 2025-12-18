@@ -82,19 +82,10 @@ class TinkerChatCompletions(OpenAIAsyncChatCompletions):
                 msg["tool_calls"] = normalized_tool_calls
 
         # If tools are provided, inject them into the system message
-        # This allows the model to know what functions are available
-        # TODO is this the same way others do? 
         if tools:
             import json
-            tools_text = "\n\n# Available Tools\nYou have access to the following tools:\n" + json.dumps(tools, indent=2)
-            tools_text += "\n\n# IMPORTANT: How to Use Tools"
-            tools_text += "\nWhen you need to call a tool, you MUST use this EXACT format:"
-            tools_text += "\n<tool_call>"
-            tools_text += '\n{"name": "tool_name", "args": {"arg1": "value1", "arg2": "value2"}}'
-            tools_text += "\n</tool_call>"
-            tools_text += "\n\nIMPORTANT: Use 'args' not 'arguments' in the JSON."
-            tools_text += "\nDo NOT describe what you would do. Do NOT write code. ALWAYS use the <tool_call> tags to actually invoke the tool."
-            tools_text += "\nAfter calling a tool, wait for the tool result before responding to the user."
+            tools_text = "\n\n# Available Tools\n" + json.dumps(tools, indent=2)
+            tools_text += '\n\nTo call a tool, use: <tool_call>{"name": "tool_name", "args": {...}}</tool_call>'
 
             if messages and messages[0].get("role") == "system":
                 messages[0] = messages[0].copy()
