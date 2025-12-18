@@ -44,19 +44,21 @@ async def chat_completions(request: Request) -> JSONResponse:
     #   - Accept prompt_token_ids in request body
     #   - Skip renderer.build_generation_prompt if token IDs provided
     #   - Use ModelInput.from_ints(prompt_token_ids) directly
-    # 
+    #
     # But first, lets get running with mismatch.
-    
-    
+
+
     if _global_client is None:
         return JSONResponse(
             status_code=503, content={"error": "Tinker client not initialized"}
         )
 
     body: Dict[str, Any] = await request.json()
+    logger.info(f"Received chat completion request with keys: {list(body.keys())}")
 
     try:
         response = await _global_client.chat.completions.create(**body)
+        logger.info(f"Successfully created chat completion")
 
         response_dict = {
             "id": response.id,
@@ -104,6 +106,44 @@ async def chat_completions(request: Request) -> JSONResponse:
 
     except Exception as e:
         logger.error(f"Error in chat completions: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.post("/tokenize")
+async def tokenize(request: Request) -> JSONResponse:
+    """Tokenize endpoint for getting prompt token IDs."""
+    if _global_client is None:
+        return JSONResponse(
+            status_code=503, content={"error": "Tinker client not initialized"}
+        )
+
+    body: Dict[str, Any] = await request.json()
+    logger.info(f"Received tokenize request with keys: {list(body.keys())}")
+
+    try:
+        # Extract messages from the request
+        messages = body.get("messages", [])
+
+        if not messages:
+            logger.warning("No messages provided in tokenize request")
+            return JSONResponse(content={"tokens": []})
+
+        # Use the same rendering pipeline as chat completions
+        # This ensures token IDs match what will be used in actual generation
+        model_input = _global_client.renderer.build_generation_prompt(messages)
+        prompt_token_ids = model_input.to_ints()
+
+        logger.info(f"Tokenized {len(messages)} messages -> {len(prompt_token_ids)} tokens")
+
+        # Return format expected by vllm_model
+        response_dict = {
+            "tokens": prompt_token_ids
+        }
+
+        return JSONResponse(content=response_dict)
+
+    except Exception as e:
+        logger.error(f"Error in tokenize: {e}", exc_info=True)
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 

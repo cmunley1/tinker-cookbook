@@ -35,7 +35,6 @@ class CLIConfig:
     agent_server: str | None = None
     head_server_host: str = "127.0.0.1"
     head_server_port: int = 11000
-    agent_name: str | None = None
     tinker_server_port: int = 8000
 
     dataset_n: int = -1
@@ -161,7 +160,6 @@ async def cli_main(cli_config: CLIConfig, env: Any | None):
         agent_server=cli_config.agent_server,
         head_server_host=cli_config.head_server_host,
         head_server_port=cli_config.head_server_port,
-        agent_name=cli_config.agent_name,
         groups_per_batch=cli_config.groups_per_batch,
         dataset_n=cli_config.dataset_n,
     )

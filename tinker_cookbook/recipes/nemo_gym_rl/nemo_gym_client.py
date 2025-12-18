@@ -81,10 +81,11 @@ async def call_nemo_gym_agent(
                         results.append(json_data)
                     else:
                         print(f"WARNING: Request {i} returned non-dict: {type(json_data)}")
+                        print(f"  Response content: {json_data}")
                         results.append({
                             "response": {"output": []},
                             "reward": 0.0,
-                            "error": "Non-dict response"
+                            "error": f"Non-dict response: {json_data}"
                         })
                 except Exception as e:
                     print(f"WARNING: Failed to parse response {i}: {e}")

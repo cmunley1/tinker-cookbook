@@ -1,1 +1,4 @@
+outputs/
+uv.lock
+.gitignore
 **/__pycache__

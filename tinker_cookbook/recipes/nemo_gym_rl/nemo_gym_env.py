@@ -49,8 +49,8 @@ def get_agent_server_from_head(
             for project_name, project_config in global_config_dict.items():
                 if hasattr(project_config, 'responses_api_agents'):
                     agents = project_config.responses_api_agents
-                    if hasattr(agents, agent_name):
-                        agent_config = getattr(agents, agent_name)
+                    if agent_name in agents:
+                        agent_config = agents[agent_name]
                         agent_server = f"http://{agent_config.host}:{agent_config.port}"
                         return agent_server
 
@@ -233,7 +233,6 @@ class NemoGymRLDatasetBuilder(RLDatasetBuilder):
     agent_server: str | None = None
     head_server_host: str = "127.0.0.1"
     head_server_port: int = 11000
-    agent_name: str | None = None
     groups_per_batch: int = 32
     dataset_n: int = -1
 
@@ -245,7 +244,7 @@ class NemoGymRLDatasetBuilder(RLDatasetBuilder):
             agent_server = get_agent_server_from_head(
                 self.head_server_host,
                 self.head_server_port,
-                self.agent_name,
+                agent_name=None,
             )
             set_nemo_gym_agent_server(agent_server)
 

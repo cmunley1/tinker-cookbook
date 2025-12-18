@@ -203,10 +203,9 @@ ng_run "+config_paths=[resources_servers/reasoning_gym/configs/reasoning_gym.yam
 
 ```bash
 python -m tinker_cookbook.recipes.nemo_gym_rl.train \
-    dataset_path=Gym/resources_servers/reasoning_gym/data/train_knights_knaves.jsonl \
+    dataset_path=../Gym/resources_servers/reasoning_gym/data/train_knights_knaves.jsonl \
     head_server_host=127.0.0.1 \
     head_server_port=11000 \
-    agent_name=reasoning_gym_simple_agent \
     model_name=meta-llama/Llama-3.1-8B-Instruct \
     group_size=4 \
     groups_per_batch=16 \
@@ -222,7 +221,6 @@ python -m tinker_cookbook.recipes.nemo_gym_rl.train \
 ```bash
 python -m tinker_cookbook.recipes.nemo_gym_rl.evaluate \
     dataset_path=Gym/resources_servers/reasoning_gym/data/train_knights_knaves.jsonl \
-    agent_name=reasoning_gym_simple_agent \
     num_examples=20 \
     rollouts_per_example=3
 ```

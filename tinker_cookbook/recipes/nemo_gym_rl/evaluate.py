@@ -96,7 +96,6 @@ async def evaluate(
     agent_server: str | None,
     head_server_host: str,
     head_server_port: int,
-    agent_name: str | None,
     num_examples: int,
     rollouts_per_example: int,
     max_output_tokens: int,
@@ -108,7 +107,7 @@ async def evaluate(
         agent_server = get_agent_server_from_head(
             head_server_host,
             head_server_port,
-            agent_name,
+            agent_name=None,
         )
 
     print(f"Using nemo gym agent server: {agent_server}")
@@ -154,7 +153,6 @@ class CLIConfig:
     agent_server: str | None = None
     head_server_host: str = "127.0.0.1"
     head_server_port: int = 11000
-    agent_name: str | None = None
 
     num_examples: int = 5
     rollouts_per_example: int = 3
@@ -172,7 +170,6 @@ async def cli_main(cfg: CLIConfig):
         agent_server=cfg.agent_server,
         head_server_host=cfg.head_server_host,
         head_server_port=cfg.head_server_port,
-        agent_name=cfg.agent_name,
         num_examples=cfg.num_examples,
         rollouts_per_example=cfg.rollouts_per_example,
         max_output_tokens=cfg.max_output_tokens,
