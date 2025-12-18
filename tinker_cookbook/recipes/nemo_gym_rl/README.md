@@ -44,24 +44,7 @@ ng_run "+config_paths=[resources_servers/workplace_assistant/configs/workplace_a
 ### Training
 
 ```bash
-python -m tinker_cookbook.recipes.nemo_gym_rl.train \
-    dataset_path=/path/to/dataset.jsonl \
-    head_server_host=127.0.0.1 \
-    head_server_port=11000 \
-    agent_name=simple_agent \
-    model_name=Qwen/Qwen3-4B-Instruct-2507
-```
-
-### Evaluation
-
-```bash
-python -m tinker_cookbook.recipes.nemo_gym_rl.evaluate \
-    dataset_path=/path/to/dataset.jsonl \
-    agent_server=http://127.0.0.1:8001 \
-    num_examples=10 \
-    rollouts_per_example=3 \
-    max_output_tokens=4096 \
-    temperature=1.0
+ python -m tinker_cookbook.recipes.nemo_gym_rl.train     dataset_path=/home/cmunley/tinker-cookbook/train-workplace.jsonl     head_server_host=127.0.0.1     head_server_port=11000     model_name=Qwen/Qwen3-4B-Instruct-2507     group_size=8     groups_per_batch=8     learning_rate=1e-5     lora_rank=32     max_tokens=8192     save_every=10     log_path=./outputs/workplace_run3
 ```
 
 ### Output
