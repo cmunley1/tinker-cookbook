@@ -1,4 +1,5 @@
 outputs/
 uv.lock
+train*jsonl
 .gitignore
 **/__pycache__

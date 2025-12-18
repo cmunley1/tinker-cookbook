@@ -27,6 +27,7 @@ dependencies = [
     "textarena>=0.7.4",
     "math-verify",
     "scipy",
+    "matplotlib>=3.10.8",
 ]
 
 [project.urls]

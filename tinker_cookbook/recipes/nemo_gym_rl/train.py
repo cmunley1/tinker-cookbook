@@ -117,7 +117,6 @@ async def cli_main(cli_config: CLIConfig, env: Any | None):
             timeout=cli_config.request_timeout,
         )
 
-        # Log trajectories
         with open(trajectory_file, 'a') as f:
             for i, response in enumerate(responses):
                 trajectory_data = {
@@ -129,14 +128,12 @@ async def cli_main(cli_config: CLIConfig, env: Any | None):
                 }
                 f.write(json.dumps(trajectory_data) + "\n")
 
-        # Convert responses to TrajectoryGroup
         trajectory_group = convert_nemo_gym_responses_to_trajectory_group(responses)
 
-        # Log stats
         rewards = trajectory_group.final_rewards_G
         if rewards:
             print(f"\n{'='*80}")
-            print(f"[Step {current_step[0]}] Rollout Summary:")
+            print(f"[Step {current_step[0]}] Summary:")
             print(f"  Num trajectories: {len(rewards)}")
             print(f"  Mean reward: {sum(rewards)/len(rewards):.3f}")
             print(f"  Min/max reward: {min(rewards):.3f}/{max(rewards):.3f}")
@@ -152,7 +149,6 @@ async def cli_main(cli_config: CLIConfig, env: Any | None):
 
         return trajectory_group
 
-    # Override do_group_rollout function
     train.do_group_rollout = custom_do_group_rollout
 
     dataset_builder = NemoGymRLDatasetBuilder(
@@ -182,20 +178,18 @@ async def cli_main(cli_config: CLIConfig, env: Any | None):
     )
 
     print(f"\n{'='*80}")
-    print(f"Starting nemo gym RL training")
-    print(f"  Model: {cli_config.model_name}")
-    print(f"  Dataset: {cli_config.dataset_path}")
-    print(f"  Agent server: {cli_config.agent_server or 'auto-discover'}")
-    print(f"  Group size: {cli_config.group_size}")
-    print(f"  Groups per batch: {cli_config.groups_per_batch}")
-    print(f"  Learning rate: {cli_config.learning_rate}")
-    print(f"  LoRA rank: {cli_config.lora_rank}")
-    print(f"  Log path: {log_path}")
-    print(f"  Trajectory log: {trajectory_file}")
+    print(f"Starting training")
+    print(f"Model: {cli_config.model_name}")
+    print(f"Dataset: {cli_config.dataset_path}")
+    print(f"Group size: {cli_config.group_size}")
+    print(f"Groups per batch: {cli_config.groups_per_batch}")
+    print(f"Learning rate: {cli_config.learning_rate}")
+    print(f"LoRA rank: {cli_config.lora_rank}")
+    print(f"Log path: {log_path}")
+    print(f"Trajectory log: {trajectory_file}")
     print(f"{'='*80}\n")
 
     await train.main(cfg)
-
 
 if __name__ == "__main__":
     cli_config = chz.entrypoint(CLIConfig)

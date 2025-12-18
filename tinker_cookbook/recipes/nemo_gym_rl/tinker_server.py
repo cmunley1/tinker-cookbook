@@ -1,16 +1,8 @@
-"""
-FastAPI server that exposes Tinker's sampling client as an OpenAI-compatible HTTP API.
-This allows NeMo-Gym to call Tinker's inference endpoint during training.
-"""
-
 from __future__ import annotations
-
 import logging
 from typing import Any, Dict
-
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-
 from tinker_cookbook.recipes.verifiers_rl.tinker_openai import TinkerAsyncOpenAIClient
 
 logger = logging.getLogger(__name__)
@@ -44,9 +36,6 @@ async def chat_completions(request: Request) -> JSONResponse:
     #   - Accept prompt_token_ids in request body
     #   - Skip renderer.build_generation_prompt if token IDs provided
     #   - Use ModelInput.from_ints(prompt_token_ids) directly
-    #
-    # But first, lets get running with mismatch.
-
 
     if _global_client is None:
         return JSONResponse(
@@ -68,10 +57,7 @@ async def chat_completions(request: Request) -> JSONResponse:
             "choices": [
                 {
                     "index": choice.index,
-                    "message": {
-                        "role": choice.message.role,
-                        "content": choice.message.content,
-                    },
+                    "message": choice.message.model_dump(),
                     "finish_reason": choice.finish_reason,
                     "logprobs": (
                         {
@@ -111,7 +97,6 @@ async def chat_completions(request: Request) -> JSONResponse:
 
 @app.post("/tokenize")
 async def tokenize(request: Request) -> JSONResponse:
-    """Tokenize endpoint for getting prompt token IDs."""
     if _global_client is None:
         return JSONResponse(
             status_code=503, content={"error": "Tinker client not initialized"}
@@ -121,21 +106,40 @@ async def tokenize(request: Request) -> JSONResponse:
     logger.info(f"Received tokenize request with keys: {list(body.keys())}")
 
     try:
-        # Extract messages from the request
+        from tinker_cookbook.renderers import ToolCall
+
         messages = body.get("messages", [])
 
         if not messages:
             logger.warning("No messages provided in tokenize request")
             return JSONResponse(content={"tokens": []})
 
-        # Use the same rendering pipeline as chat completions
-        # This ensures token IDs match what will be used in actual generation
+        for msg in messages:
+            if "tool_calls" in msg and msg["tool_calls"]:
+                normalized_tool_calls = []
+                for tc in msg["tool_calls"]:
+                    if isinstance(tc, dict):
+                        func = tc.get("function", {})
+                        normalized_tool_calls.append(
+                            ToolCall(
+                                id=tc.get("id"),
+                                type=tc.get("type", "function"),
+                                function=ToolCall.FunctionBody(
+                                    name=func.get("name", ""),
+                                    arguments=func.get("arguments", "{}"),
+                                )
+                            )
+                        )
+                    else:
+                        normalized_tool_calls.append(tc)
+                msg["tool_calls"] = normalized_tool_calls
+
         model_input = _global_client.renderer.build_generation_prompt(messages)
         prompt_token_ids = model_input.to_ints()
 
         logger.info(f"Tokenized {len(messages)} messages -> {len(prompt_token_ids)} tokens")
 
-        # Return format expected by vllm_model
+        # vllm_model format
         response_dict = {
             "tokens": prompt_token_ids
         }
