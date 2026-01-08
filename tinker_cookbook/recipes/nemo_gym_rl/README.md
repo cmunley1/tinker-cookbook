@@ -36,6 +36,6 @@ python -m tinker_cookbook.recipes.nemo_gym_rl.train     dataset_path=/home/cmunl
 
 
 Plot train reward 
-```
-python3 plot_rewards.py --log_path ../../../outputs/workplace_run5/
+```bash
+python3 plot_rewards.py --log_path outputs/workplace_run1/
 ```

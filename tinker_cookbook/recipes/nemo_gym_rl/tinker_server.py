@@ -1,6 +1,8 @@
 from __future__ import annotations
+import json
 import logging
 import time
+import uuid
 from typing import Any, Dict, List, Literal, overload
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -17,6 +19,45 @@ from tinker_cookbook.tokenizer_utils import Tokenizer
 from tinker_cookbook.renderers import ToolCall
 
 logger = logging.getLogger(__name__)
+
+
+def _normalize_tool_calls_in_messages(messages: List[Dict[str, Any]]) -> None:
+    """Convert tool_calls from dicts to ToolCall objects in-place."""
+    for msg in messages:
+        if "tool_calls" not in msg or not msg["tool_calls"]:
+            continue
+        normalized = []
+        for tc in msg["tool_calls"]:
+            if isinstance(tc, dict):
+                func = tc.get("function", {})
+                normalized.append(
+                    ToolCall(
+                        id=tc.get("id"),
+                        type=tc.get("type", "function"),
+                        function=ToolCall.FunctionBody(
+                            name=func.get("name", ""),
+                            arguments=func.get("arguments", "{}"),
+                        )
+                    )
+                )
+            else:
+                normalized.append(tc)
+        msg["tool_calls"] = normalized
+
+
+def _tool_calls_to_dicts(tool_calls: List[Any]) -> List[Dict[str, Any]]:
+    """Convert ToolCall objects to OpenAI API dict format."""
+    return [
+        {
+            "id": tc.id if (hasattr(tc, "id") and tc.id) else f"call_{uuid.uuid4().hex[:24]}",
+            "type": "function",
+            "function": {
+                "name": tc.function.name if hasattr(tc, "function") else tc.get("function", {}).get("name"),
+                "arguments": tc.function.arguments if hasattr(tc, "function") else tc.get("function", {}).get("arguments"),
+            }
+        }
+        for tc in tool_calls
+    ]
 
 
 class TinkerAsyncOpenAIClient(AsyncOpenAI):
@@ -66,32 +107,12 @@ class TinkerChatCompletions(OpenAIAsyncChatCompletions):
         messages = kwargs.get("messages", []).copy()
         tools = kwargs.get("tools", [])
 
-        # dict to ToolCall objects
-        for msg in messages:
-            if "tool_calls" in msg and msg["tool_calls"]:
-                normalized_tool_calls = []
-                for tc in msg["tool_calls"]:
-                    if isinstance(tc, dict):
-                        func = tc.get("function", {})
-                        normalized_tool_calls.append(
-                            ToolCall(
-                                id=tc.get("id"),
-                                type=tc.get("type", "function"),
-                                function=ToolCall.FunctionBody(
-                                    name=func.get("name", ""),
-                                    arguments=func.get("arguments", "{}"),
-                                )
-                            )
-                        )
-                    else:
-                        normalized_tool_calls.append(tc)
-                msg["tool_calls"] = normalized_tool_calls
+        _normalize_tool_calls_in_messages(messages)
 
         # If tools are provided, inject them into the system message
-        # This is a hack, we should use the renderer.
-        # This will fail if we expect a different tool call format.
+        # this is a hack, we should use the renderer i think - eg if a model uses different tool call format. 
+        # tested with Qwen3-4B-Instruct-2507
         if tools:
-            import json
             tools_text = "\n\n# Available Tools\n" + json.dumps(tools, indent=2)
             tools_text += '\n\nTo call a tool, use: <tool_call>{"name": "tool_name", "args": {...}}</tool_call>'
 
@@ -131,21 +152,9 @@ class TinkerChatCompletions(OpenAIAsyncChatCompletions):
         )
         finish_reason = "stop" if parse_success else "length"
 
-        # ToolCall to dict
         message_dict = assistant_message.copy()
         if "tool_calls" in message_dict and message_dict["tool_calls"]:
-            import uuid
-            message_dict["tool_calls"] = [
-                {
-                    "id": tc.id if (hasattr(tc, "id") and tc.id) else f"call_{uuid.uuid4().hex[:24]}",
-                    "type": "function",
-                    "function": {
-                        "name": tc.function.name if hasattr(tc, "function") else tc.get("function", {}).get("name"),
-                        "arguments": tc.function.arguments if hasattr(tc, "function") else tc.get("function", {}).get("arguments"),
-                    }
-                }
-                for tc in message_dict["tool_calls"]
-            ]
+            message_dict["tool_calls"] = _tool_calls_to_dicts(message_dict["tool_calls"])
 
         response_dict: Dict[str, Any] = {
             "id": "tinker-chatcmpl",
@@ -374,25 +383,7 @@ async def tokenize(request: Request) -> JSONResponse:
             logger.warning("No messages provided in tokenize request")
             return JSONResponse(content={"tokens": []})
 
-        for msg in messages:
-            if "tool_calls" in msg and msg["tool_calls"]:
-                normalized_tool_calls = []
-                for tc in msg["tool_calls"]:
-                    if isinstance(tc, dict):
-                        func = tc.get("function", {})
-                        normalized_tool_calls.append(
-                            ToolCall(
-                                id=tc.get("id"),
-                                type=tc.get("type", "function"),
-                                function=ToolCall.FunctionBody(
-                                    name=func.get("name", ""),
-                                    arguments=func.get("arguments", "{}"),
-                                )
-                            )
-                        )
-                    else:
-                        normalized_tool_calls.append(tc)
-                msg["tool_calls"] = normalized_tool_calls
+        _normalize_tool_calls_in_messages(messages)
 
         model_input = _global_client.renderer.build_generation_prompt(messages)
         prompt_token_ids = model_input.to_ints()

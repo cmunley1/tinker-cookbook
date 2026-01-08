@@ -27,15 +27,17 @@ logger = logging.getLogger(__name__)
 
 @chz.chz
 class CLIConfig:
+    # model configuration
     model_name: str = "Qwen/Qwen3-4B-Instruct-2507"
     lora_rank: int = 32
 
+    # environment configuration
     dataset_path: str
     agent_server: str | None = None
     tinker_server_port: int = 8000
-
     dataset_n: int = -1
 
+    # training hyperparameters
     group_size: int = 8
     groups_per_batch: int = 32
     num_substeps: int = 1
@@ -46,6 +48,7 @@ class CLIConfig:
     kl_penalty_coef: float = 0.0
     request_timeout: float = 600.0
 
+    # logging configuration
     eval_every: int = 0
     save_every: int = 10
     log_path: str | None = None
@@ -85,6 +88,7 @@ async def cli_main(cli_config: CLIConfig, env: Any | None):
     ) -> TrajectoryGroup:
         nonlocal shared_client, shared_renderer, local_tokenizer
 
+        # initialize tokenizer and renderer lazily
         if local_tokenizer is None:
             local_tokenizer = get_tokenizer(cli_config.model_name)
         if shared_renderer is None:
@@ -126,26 +130,10 @@ async def cli_main(cli_config: CLIConfig, env: Any | None):
                 f.write(json.dumps(trajectory_data) + "\n")
 
         trajectory_group = convert_nemo_gym_responses_to_trajectory_group(responses)
-
-        rewards = trajectory_group.final_rewards_G
-        if rewards:
-            print(f"\n{'='*80}")
-            print(f"[Step {current_step[0]}] Summary:")
-            print(f"  Num trajectories: {len(rewards)}")
-            print(f"  Mean reward: {sum(rewards)/len(rewards):.3f}")
-            print(f"  Min/max reward: {min(rewards):.3f}/{max(rewards):.3f}")
-
-            num_turns = [m.get("num_turns", 0) for m in trajectory_group.metrics_G]
-            if num_turns:
-                print(f"  Mean turns: {sum(num_turns)/len(num_turns):.1f}")
-                print(f"  Min/max turns: {min(num_turns)}/{max(num_turns)}")
-
-            print(f"{'='*80}\n")
-
         current_step[0] += 1
-
         return trajectory_group
 
+    # override do_group_rollout function inside rl.train
     train.do_group_rollout = custom_do_group_rollout
 
     dataset_builder = NemoGymRLDatasetBuilder(
@@ -171,18 +159,6 @@ async def cli_main(cli_config: CLIConfig, env: Any | None):
         save_every=cli_config.save_every,
         stream_minibatch_config=None,
     )
-
-    print(f"\n{'='*80}")
-    print(f"Starting training")
-    print(f"Model: {cli_config.model_name}")
-    print(f"Dataset: {cli_config.dataset_path}")
-    print(f"Group size: {cli_config.group_size}")
-    print(f"Groups per batch: {cli_config.groups_per_batch}")
-    print(f"Learning rate: {cli_config.learning_rate}")
-    print(f"LoRA rank: {cli_config.lora_rank}")
-    print(f"Log path: {log_path}")
-    print(f"Trajectory log: {trajectory_file}")
-    print(f"{'='*80}\n")
 
     await train.main(cfg)
 
