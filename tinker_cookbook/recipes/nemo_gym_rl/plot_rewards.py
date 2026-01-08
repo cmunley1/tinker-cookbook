@@ -1,11 +1,8 @@
 from __future__ import annotations
-
 import argparse
 from pathlib import Path
-
 import matplotlib.pyplot as plt
 import pandas as pd
-
 
 def plot_rewards(metrics_path: str | Path) -> None:
     metrics_path = Path(metrics_path)
@@ -44,9 +41,8 @@ def plot_rewards(metrics_path: str | Path) -> None:
     print(f"Saved plot to: {output_path}")
     plt.show()
 
-
 def main():
-    parser = argparse.ArgumentParser(description="Plot NeMo Gym RL training rewards")
+    parser = argparse.ArgumentParser(description="Plot training reward")
     parser.add_argument(
         "--log_path",
         type=str,
@@ -57,7 +53,6 @@ def main():
 
     metrics_path = Path(args.log_path) / "metrics.jsonl"
     plot_rewards(metrics_path)
-
 
 if __name__ == "__main__":
     main()

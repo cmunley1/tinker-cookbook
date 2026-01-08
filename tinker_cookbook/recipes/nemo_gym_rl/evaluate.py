@@ -107,7 +107,6 @@ async def evaluate(
         agent_server = get_agent_server_from_head(
             head_server_host,
             head_server_port,
-            agent_name=None,
         )
 
     print(f"Using nemo gym agent server: {agent_server}")

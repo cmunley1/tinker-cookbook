@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from contextvars import ContextVar
 from typing import Any, Dict, List, Sequence
 
 import chz
@@ -20,21 +19,9 @@ from tinker_cookbook.rl.types import (
     Transition,
 )
 
-_nemo_gym_agent_server_ctx: ContextVar[str | None] = ContextVar("nemo_gym_agent_server", default=None)
-
-
-def set_nemo_gym_agent_server(agent_server: str) -> None:
-    _nemo_gym_agent_server_ctx.set(agent_server)
-
-
-def get_nemo_gym_agent_server() -> str | None:
-    return _nemo_gym_agent_server_ctx.get()
-
-
 def get_agent_server_from_head(
     head_server_host: str = "127.0.0.1",
     head_server_port: int = 11000,
-    agent_name: str | None = None,
 ) -> str:
     try:
         response = requests.get(
@@ -45,18 +32,6 @@ def get_agent_server_from_head(
         global_config_yaml = response.text
         global_config_dict = OmegaConf.create(yaml.safe_load(global_config_yaml))
 
-        if agent_name:
-            for project_name, project_config in global_config_dict.items():
-                if hasattr(project_config, 'responses_api_agents'):
-                    agents = project_config.responses_api_agents
-                    if agent_name in agents:
-                        agent_config = agents[agent_name]
-                        agent_server = f"http://{agent_config.host}:{agent_config.port}"
-                        return agent_server
-
-            raise ValueError(f"Agent '{agent_name}' not found in any project's responses_api_agents")
-
-        # find agent name if not specified
         for _, project_config in global_config_dict.items():
             if hasattr(project_config, 'responses_api_agents'):
                 agents = project_config.responses_api_agents
@@ -107,9 +82,7 @@ def convert_nemo_gym_responses_to_trajectory_group(
         transitions: List[Transition] = []
         output_items = response.get("response", {}).get("output", [])
 
-        # Process each turn that has token information
         for i, item in enumerate(output_items):
-            # Only process items with token information (model generations)
             if "prompt_token_ids" not in item or "generation_token_ids" not in item:
                 continue
 
@@ -123,7 +96,6 @@ def convert_nemo_gym_responses_to_trajectory_group(
                 maybe_logprobs=completion_logprobs,
             )
 
-            # Check if this is the last turn with token information
             is_last = True
             for j in range(i + 1, len(output_items)):
                 if "prompt_token_ids" in output_items[j] and "generation_token_ids" in output_items[j]:
@@ -144,21 +116,6 @@ def convert_nemo_gym_responses_to_trajectory_group(
                 f"No valid transitions found in response. Expected items with 'prompt_token_ids' "
                 f"and 'generation_token_ids', but got: {[list(item.keys()) for item in output_items]}"
             )
-            # trajectory = Trajectory(
-            #     transitions=[
-            #         Transition(
-            #             ob=tinker.ModelInput.empty(),
-            #             ac=TokensWithLogprobs(tokens=[], maybe_logprobs=[]),
-            #             reward=0.0,
-            #             episode_done=True,
-            #             metrics={},
-            #         )
-            #     ],
-            #     final_ob=tinker.ModelInput.empty()
-            # )
-            # trajectories_G.append(trajectory)
-            # final_rewards_G.append(0.0)
-            # metrics_G.append({"error": 1})
         else:
             trajectory = Trajectory(transitions=transitions, final_ob=tinker.ModelInput.empty())
             trajectories_G.append(trajectory)
@@ -237,12 +194,7 @@ class NemoGymRLDatasetBuilder(RLDatasetBuilder):
     dataset_n: int = -1
 
     async def __call__(self) -> tuple[RLDataset, RLDataset | None]:
-        agent_server = self.agent_server
-        if agent_server is None:
-            agent_server = get_nemo_gym_agent_server()
-        if agent_server is None:
-            agent_server = get_agent_server_from_head()
-            set_nemo_gym_agent_server(agent_server)
+        agent_server = self.agent_server or get_agent_server_from_head()
 
         print(f"Using nemo gym agent server: {agent_server}")
 

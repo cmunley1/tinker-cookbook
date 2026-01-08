@@ -17,8 +17,7 @@ from tinker_cookbook.recipes.nemo_gym_rl.nemo_gym_env import (
     NemoGymRLDatasetBuilder,
     convert_nemo_gym_responses_to_trajectory_group,
 )
-from tinker_cookbook.recipes.nemo_gym_rl.tinker_server import serve_in_background, set_client
-from tinker_cookbook.recipes.verifiers_rl.tinker_openai import TinkerAsyncOpenAIClient
+from tinker_cookbook.recipes.nemo_gym_rl.tinker_server import serve_in_background, set_client, TinkerAsyncOpenAIClient
 from tinker_cookbook.rl import train
 from tinker_cookbook.rl.types import EnvGroupBuilder, TrajectoryGroup
 from tinker_cookbook.tokenizer_utils import Tokenizer, get_tokenizer

@@ -1,6 +1,18 @@
+"""
+OpenAI-compatible client backed by Tinker sampling.
+
+Implements OpenAI client semantics for:
+- chat.completions.create(...)
+- completions.create(...)
+
+Returns OpenAI types (ChatCompletion / Completion) constructed from sampled tokens.
+"""
+
 from __future__ import annotations
+
 import time
 from typing import Any, Dict, List, Literal, overload
+
 import tinker
 from openai import AsyncOpenAI
 from openai._streaming import AsyncStream
@@ -9,11 +21,16 @@ from openai.resources.chat.completions import AsyncCompletions as OpenAIAsyncCha
 from openai.resources.completions import AsyncCompletions as OpenAIAsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion
 from openai.types.completion import Completion
+
 from tinker_cookbook import renderers
 from tinker_cookbook.tokenizer_utils import Tokenizer
-from tinker_cookbook.renderers import ToolCall
+
 
 class TinkerAsyncOpenAIClient(AsyncOpenAI):
+    """
+    OpenAI-compatible async client that routes calls to a Tinker SamplingClient.
+    """
+
     def __init__(
         self,
         sampling_client: tinker.SamplingClient,
@@ -55,44 +72,10 @@ class TinkerChatCompletions(OpenAIAsyncChatCompletions):
     async def create(self, *args: Any, stream: bool, **kwargs: Any) -> ChatCompletion: ...
 
     async def create(self, *args: Any, **kwargs: Any) -> ChatCompletion | AsyncStream[Any]:
-
         model = kwargs.get("model", "tinker")
-        messages = kwargs.get("messages", []).copy()
-        tools = kwargs.get("tools", [])
-
-        # dict to ToolCall objects
-        for msg in messages:
-            if "tool_calls" in msg and msg["tool_calls"]:
-                normalized_tool_calls = []
-                for tc in msg["tool_calls"]:
-                    if isinstance(tc, dict):
-                        func = tc.get("function", {})
-                        normalized_tool_calls.append(
-                            ToolCall(
-                                id=tc.get("id"),
-                                type=tc.get("type", "function"),
-                                function=ToolCall.FunctionBody(
-                                    name=func.get("name", ""),
-                                    arguments=func.get("arguments", "{}"),
-                                )
-                            )
-                        )
-                    else:
-                        normalized_tool_calls.append(tc)
-                msg["tool_calls"] = normalized_tool_calls
-
-        # If tools are provided, inject them into the system message
-        if tools:
-            import json
-            tools_text = "\n\n# Available Tools\n" + json.dumps(tools, indent=2)
-            tools_text += '\n\nTo call a tool, use: <tool_call>{"name": "tool_name", "args": {...}}</tool_call>'
-
-            if messages and messages[0].get("role") == "system":
-                messages[0] = messages[0].copy()
-                messages[0]["content"] = messages[0]["content"] + tools_text
-            else:
-                messages.insert(0, {"role": "system", "content": "You are a helpful assistant." + tools_text})
-
+        messages = kwargs.get("messages", [])
+        if kwargs.get("tools"):
+            raise NotImplementedError("Tool calling is not yet supported by this model's renderer.")
         if kwargs.get("stream", False):
             raise ValueError("stream=True not supported by TinkerAsyncOpenAIClient")
         sampling_args = {k: v for k, v in kwargs.items() if k not in ("model", "messages", "tools")}
@@ -122,23 +105,6 @@ class TinkerChatCompletions(OpenAIAsyncChatCompletions):
             completion_token_ids
         )
         finish_reason = "stop" if parse_success else "length"
-
-        # ToolCall to dict
-        message_dict = assistant_message.copy()
-        if "tool_calls" in message_dict and message_dict["tool_calls"]:
-            import uuid
-            message_dict["tool_calls"] = [
-                {
-                    "id": tc.id if (hasattr(tc, "id") and tc.id) else f"call_{uuid.uuid4().hex[:24]}",
-                    "type": "function",
-                    "function": {
-                        "name": tc.function.name if hasattr(tc, "function") else tc.get("function", {}).get("name"),
-                        "arguments": tc.function.arguments if hasattr(tc, "function") else tc.get("function", {}).get("arguments"),
-                    }
-                }
-                for tc in message_dict["tool_calls"]
-            ]
-
         response_dict: Dict[str, Any] = {
             "id": "tinker-chatcmpl",
             "object": "chat.completion",
@@ -147,7 +113,7 @@ class TinkerChatCompletions(OpenAIAsyncChatCompletions):
             "choices": [
                 {
                     "index": 0,
-                    "message": message_dict,
+                    "message": assistant_message,
                     "finish_reason": finish_reason,
                     "logprobs": {
                         "content": [
