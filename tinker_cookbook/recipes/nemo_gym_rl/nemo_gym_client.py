@@ -51,9 +51,6 @@ async def call_nemo_gym_agent(
             params["temperature"] = temperature
             params["top_p"] = top_p
 
-            if i == 0:
-                print(f"First request params keys: {list(params.keys())}")
-
             task = session.post(
                 f"{agent_server}/run",
                 json=request_body,
@@ -67,32 +64,12 @@ async def call_nemo_gym_agent(
 
         results = []
         for i, response in enumerate(responses):
-            if isinstance(response, Exception):
-                print(f"WARNING: Request {i} failed: {response}")
-                results.append({
-                    "response": {"output": []},
-                    "reward": 0.0,
-                    "error": str(response)
-                })
-            else:
-                try:
-                    json_data = await response.json()
-                    if isinstance(json_data, dict):
-                        results.append(json_data)
-                    else:
-                        print(f"WARNING: Request {i} returned non-dict: {type(json_data)}")
-                        print(f"  Response content: {json_data}")
-                        results.append({
-                            "response": {"output": []},
-                            "reward": 0.0,
-                            "error": f"Non-dict response: {json_data}"
-                        })
-                except Exception as e:
-                    print(f"WARNING: Failed to parse response {i}: {e}")
-                    results.append({
-                        "response": {"output": []},
-                        "reward": 0.0,
-                        "error": str(e)
-                    })
+            try:
+                if isinstance(response, Exception):
+                    raise response
+                results.append(await response.json())
+            except Exception as e:
+                print(f"WARNING: Request {i} failed: {e}")
+                results.append({"response": {"output": []}, "reward": 0.0, "error": str(e)})
 
         return results
