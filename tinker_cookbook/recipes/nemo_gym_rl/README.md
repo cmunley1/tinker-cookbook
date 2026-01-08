@@ -28,6 +28,20 @@ Launch Nemo Gym server manually (can be automated later on):
 ng_run "+config_paths=[resources_servers/workplace_assistant/configs/workplace_assistant.yaml,configs/tinker_model.yaml]"
 ```
 
+Note that tinker_model.yaml is not yet pushed to NeMo-Gym, but should look like this: 
+```bash
+cat ~/Gym/configs/tinker_model.yaml 
+policy_model:
+  responses_api_models:
+    vllm_model:
+      entrypoint: app.py
+      base_url: http://localhost:8000/v1
+      api_key: tinker
+      model: tinker
+      return_token_id_information: true
+      uses_reasoning_parser: false
+```
+
 
 Start training
 ```bash
